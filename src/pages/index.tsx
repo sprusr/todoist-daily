@@ -19,13 +19,13 @@ const Home: NextPage = () => {
         <h2>Yesterday</h2>
         <ul>
           {data.yesterday.map(task => (
-            <li key={task.id}>{task.content}</li>
+            <li key={task.id}>{task.content_with_parent}</li>
           ))}
         </ul>
         <h2>Today</h2>
         <ul>
           {data.today.map(task => (
-            <li key={task.id}>{task.content}</li>
+            <li key={task.id}>{task.content_with_parent}</li>
           ))}
         </ul>
       </>
