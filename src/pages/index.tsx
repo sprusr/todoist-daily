@@ -1,5 +1,7 @@
-import { GetServerSideProps, NextPage } from 'next';
+import { NextPage } from 'next';
+import { useRouter } from 'next/dist/client/router';
 import React from 'react';
+import useSWR from 'swr';
 
 import { Task } from '../types';
 
@@ -9,9 +11,28 @@ interface Tasks {
   yesterday: Task[];
 }
 
-const Home: NextPage<{ tasks?: Tasks }> = ({ tasks }) => {
+const getTasks = async () =>
+  (
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/tasks`)
+  ).json() as Promise<Tasks>;
+
+const Home: NextPage = () => {
+  const router = useRouter();
+  const { data: tasks, isValidating } = useSWR<Tasks>('tasks', getTasks);
+
+  if (isValidating) {
+    return <p>Loading</p>;
+  }
+
+  if (tasks?.error === 'No TODOIST_TOKEN cookie') {
+    void router.push(
+      `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/auth/start`
+    );
+    return <p>Redirecting to auth</p>;
+  }
+
   if (!tasks || tasks.error) {
-    return <p>Error: ${tasks?.error || 'Unknown'}</p>;
+    return <p>Error: {tasks?.error || 'unknown'}</p>;
   }
 
   return (
@@ -34,29 +55,6 @@ const Home: NextPage<{ tasks?: Tasks }> = ({ tasks }) => {
       </>
     )
   );
-};
-
-const getBaseUrl = () => {
-  const basePath = process.env.BASE_PATH || '';
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}${basePath}`;
-  }
-  return `http://localhost:3000${basePath}`;
-};
-
-const getTasks = async () =>
-  (await fetch(`${getBaseUrl()}/api/tasks`)).json() as Promise<Tasks>;
-
-export const getServerSideProps: GetServerSideProps = async ({ res }) => {
-  const tasks = await getTasks();
-
-  if (tasks.error === 'No TODOIST_TOKEN cookie') {
-    res.statusCode = 307;
-    res.setHeader('Location', '/api/auth/start');
-    return { props: {} };
-  }
-
-  return { props: { tasks } };
 };
 
 export default Home;
